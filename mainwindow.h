@@ -10,6 +10,9 @@
 #include <QStringList>
 #include <QTimer>
 #include <QStandardItemModel>
+#include <QClipboard>
+#include <QPixmap>
+#include <QMimeData>
 
 #include "connectdialog.h"
 #include "setdialog.h"
@@ -23,8 +26,12 @@
  * 显示连接ip--ok
  * 保存配置INI-->ok
  * 粘贴版-->todo
- *      - 文字
+ *      - 文字--ok
+ *          --多行带(;)文本需测试
+ *      - 图片
+ *      - 文件
  * 托盘最小化-->todo
+ * 日志-->todo
 */
 
 
@@ -53,6 +60,7 @@ private slots:
     void heartbeatTimer();  //定时器槽，心跳消息
     void showConnectDlg();
     void showSetDlg();
+    void clipboardChanged();
 
 public:
     void read_local_ip();                       //读取本地ip
@@ -62,6 +70,9 @@ public:
     void udpHandle(QString msg);                //处理接收到的信息
     void heartbeat_respond(QString ip);         //心跳消息处理
     void heartbeat2_respond(QString ip);        //心跳回应消息处理
+    void get_clipboard_data();                  //获取粘贴板内容
+    void send_clipboard_data(QString ip);       //发送粘贴板内容
+    void set_clipboard_data(QString text);      //设置粘贴板内容 text
 
 private:
     Ui::MainWindow *ui;
@@ -78,7 +89,10 @@ private:
     QTimer *heartTimer;
 
     //粘贴类型
-    int m_clipboardType;
+    int m_clipboardType = 0;      // 1：文字、2：图片、3：文件
     QString m_clipData;
+    QPixmap m_clipImg;
+    bool isLocalChangeClip = false;     //是否因设置引起粘贴板的改变
+
 };
 #endif // MAINWINDOW_H

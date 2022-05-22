@@ -59,6 +59,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->serverTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->serverTableView->setModel(m_serverModel);
     ui->serverTableView->show();
+
+    connect(QApplication::clipboard(), SIGNAL(dataChanged()),this, SLOT(clipboardChanged()));
 }
 
 MainWindow::~MainWindow()
@@ -78,7 +80,7 @@ void MainWindow::read_local_ip()
     }
 }
 
-//连接 == 槽
+//连接 ==> 槽
 void MainWindow::showConnectDlg()
 {
     connectDialog dlg;
@@ -120,7 +122,7 @@ void MainWindow::concet_send(QString ip, int port)
     QString localIp = ui->localIPcomboBox->currentText();
     QString sendstr = QString("ckmshare;connect;%1;%2").arg(localIp).arg(port);
     udpSocket->writeDatagram(sendstr.toUtf8(),QHostAddress(ip),my_port);
-    qDebug()<<"concet_send发起连接请求:"<<sendstr;
+//    qDebug()<<"concet_send发起连接请求:"<<sendstr;
 }
 
 void MainWindow::concet_respond(QString ip, int port)
@@ -128,7 +130,7 @@ void MainWindow::concet_respond(QString ip, int port)
     QString localIp = ui->localIPcomboBox->currentText();
     QString sendstr = QString("ckmshare;connect2;%1;%2").arg(localIp).arg(port);
     udpSocket->writeDatagram(sendstr.toUtf8(),QHostAddress(ip),my_port);
-    qDebug()<<"concet_respond回应连接请求:"<<sendstr;
+//    qDebug()<<"concet_respond回应连接请求:"<<sendstr;
 }
 
 void MainWindow::udpHandle(QString msg)
@@ -168,16 +170,17 @@ void MainWindow::udpHandle(QString msg)
     }else if(strlist.at(1) == "text"){
         //文本粘贴内容
         ip = strlist.at(2);
-        m_clipboardType = 1;
-        m_clipData = strlist.at(3);
+        QString tempstr;
+        for(int i=3;i<strlist.length();i++){
+            tempstr = tempstr + strlist.at(i);
+        }
+        set_clipboard_data(tempstr);
     }else if(strlist.at(1) == "image"){
         //传输图片x
         ip = strlist.at(2);
-        m_clipboardType = 2;
     }else if(strlist.at(1) == "file"){
         //传输文件x
         ip = strlist.at(2);
-        m_clipboardType = 3;
     }
 }
 
@@ -206,7 +209,7 @@ void MainWindow::heartbeatTimer()
         QString ip = iterServer.key();
         if(iterServer.value().isConnect){
             udpSocket->writeDatagram(sendstr.toUtf8(),QHostAddress(ip),my_port);
-            qDebug()<<"发送心跳m_serverMap:"<<sendstr<<";"<<ip;
+//            qDebug()<<"发送心跳m_serverMap:"<<sendstr<<";"<<ip;
         }
 
         m_serverMap[ip].errCount++;
@@ -276,7 +279,7 @@ void MainWindow::heartbeat_respond(QString ip)
         udpSocket->writeDatagram(sendstr.toUtf8(),QHostAddress(ip),my_port);
         //心跳正常
         m_clientMap[ip].errCount = 0;
-        qDebug()<<"heartbeat_respond";
+//        qDebug()<<"heartbeat_respond";
     }
 }
 
@@ -287,7 +290,91 @@ void MainWindow::heartbeat2_respond(QString ip)
     {
         //心跳正常
         m_serverMap[ip].errCount = 0;
-        qDebug()<<"heartbeat2_respond";
+//        qDebug()<<"heartbeat2_respond";
 
     }
+}
+
+//获取粘贴板内容
+void MainWindow::get_clipboard_data()
+{
+    const QClipboard *clipboard = QApplication::clipboard();
+    const QMimeData *mimeData = clipboard->mimeData();
+
+    if(mimeData->hasImage()){
+        //图片
+        qDebug()<<"图片";
+        m_clipboardType = 2;
+    }else if(mimeData->hasHtml()){
+        qDebug()<<"html";
+        m_clipboardType = 1;
+        m_clipData = mimeData->text();
+//        qDebug()<<m_clipData;
+    }else if(mimeData->hasText()){
+        qDebug()<<"text";
+        m_clipboardType = 1;
+        m_clipData = mimeData->text();
+//        qDebug()<<m_clipData;
+    }else if(mimeData->hasUrls()){
+        qDebug()<<"url";
+        m_clipboardType = 1;
+        m_clipData = mimeData->text();
+//        qDebug()<<m_clipData;
+    }
+}
+
+//发送粘贴板内容
+void MainWindow::send_clipboard_data(QString ip)
+{
+    if(m_clipboardType == 1){
+        //文字
+        QString localIp = ui->localIPcomboBox->currentText();
+        QString sendstr = QString("ckmshare;text;%1;%2").arg(localIp).arg(m_clipData);
+        udpSocket->writeDatagram(sendstr.toUtf8(),QHostAddress(ip),my_port);
+    }else if(m_clipboardType == 2){
+        //图片
+    }else if(m_clipboardType == 3){
+        //文件
+    }else{
+
+    }
+}
+
+//设置粘贴板内容 文本
+void MainWindow::set_clipboard_data(QString text)
+{
+    QClipboard *clipboard = QApplication::clipboard();
+    clipboard->setText(text);
+    qDebug()<<"设置粘贴板:"<<text;
+    isLocalChangeClip = true;
+}
+
+
+void MainWindow::clipboardChanged()
+{
+    if(isLocalChangeClip){
+        isLocalChangeClip = false;
+    }else{
+        qDebug()<<"粘贴板内容改变";
+        get_clipboard_data();
+        QMap<QString,addressHost>::const_iterator iterServer = m_serverMap.constBegin();
+        while (iterServer != m_serverMap.constEnd()) {
+            QString ip = iterServer.key();
+            if(iterServer.value().isConnect){
+                send_clipboard_data(ip);
+            }
+            iterServer++;
+        }
+
+        QMap<QString,addressHost>::const_iterator iterClient = m_clientMap.constBegin();
+        while (iterClient != m_clientMap.constEnd()) {
+            QString ip = iterClient.key();
+            if(iterClient.value().isConnect){
+                send_clipboard_data(ip);
+            }
+            iterClient++;
+        }
+
+    }
+
 }
