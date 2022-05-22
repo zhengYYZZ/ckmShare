@@ -2,6 +2,7 @@
 #define SETDIALOG_H
 
 #include <QDialog>
+#include <QSettings>
 
 namespace Ui {
 class setDialog;
@@ -17,6 +18,8 @@ public:
 
 private slots:
     void on_buttonBox_accepted();
+
+    void on_buttonBox_rejected();
 
 private:
     Ui::setDialog *ui;

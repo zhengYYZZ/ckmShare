@@ -26,7 +26,7 @@
     <string>传输文件大小：</string>
    </property>
   </widget>
-  <widget class="QLineEdit" name="lineEdit">
+  <widget class="QLineEdit" name="fileSizeLineEdit">
    <property name="geometry">
     <rect>
      <x>90</x>
@@ -62,7 +62,7 @@
     <string>通讯端口：</string>
    </property>
   </widget>
-  <widget class="QLineEdit" name="lineEdit_2">
+  <widget class="QLineEdit" name="PortlineEdit">
    <property name="geometry">
     <rect>
      <x>90</x>
@@ -98,7 +98,7 @@
     <string>临时文件存放路径:</string>
    </property>
   </widget>
-  <widget class="QLineEdit" name="lineEdit_3">
+  <widget class="QLineEdit" name="filePathLineEdit">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -108,7 +108,7 @@
     </rect>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton">
+  <widget class="QPushButton" name="filePathPushButton">
    <property name="geometry">
     <rect>
      <x>170</x>

@@ -13,7 +13,6 @@
 
 #include "connectdialog.h"
 #include "setdialog.h"
-#include "showconnectipcard.h"
 
 
 /***
@@ -22,7 +21,10 @@
  * 心跳-->基本完成->ok
  * 断线重连-ok
  * 显示连接ip--ok
- * 保存配置INI
+ * 保存配置INI-->ok
+ * 粘贴版-->todo
+ *      - 文字
+ * 托盘最小化-->todo
 */
 
 
