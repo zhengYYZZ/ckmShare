@@ -12,3 +12,8 @@ setDialog::~setDialog()
 {
     delete ui;
 }
+
+void setDialog::on_buttonBox_accepted()
+{
+
+}

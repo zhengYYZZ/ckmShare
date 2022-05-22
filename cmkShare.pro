@@ -19,17 +19,17 @@ SOURCES += \
     connectdialog.cpp \
     main.cpp \
     mainwindow.cpp \
-    setdialog.cpp
+    setdialog.cpp \
 
 HEADERS += \
     connectdialog.h \
     mainwindow.h \
-    setdialog.h
+    setdialog.h \
 
 FORMS += \
     connectdialog.ui \
     mainwindow.ui \
-    setdialog.ui
+    setdialog.ui \
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
