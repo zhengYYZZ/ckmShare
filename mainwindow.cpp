@@ -186,8 +186,10 @@ void MainWindow::udpHandle(QString msg)
         //传输图片x
         ip = strlist.at(2);
         //建立tcp监听
-
-    }else if(strlist.at(1) == "file"){
+    }else if(strlist.at(1) == "image2"){
+        //开始发送图片数据
+    }
+    else if(strlist.at(1) == "file"){
         //传输文件x
         ip = strlist.at(2);
     }
