@@ -19,14 +19,16 @@ SOURCES += \
     connectdialog.cpp \
     main.cpp \
     mainwindow.cpp \
-    setdialog.cpp \ \
-    transimage.cpp
+    setdialog.cpp \
+    tcpfileclient.cpp \
+    tcpfileserver.cpp
 
 HEADERS += \
     connectdialog.h \
     mainwindow.h \
-    setdialog.h \ \
-    transimage.h
+    setdialog.h \
+    tcpfileclient.h \
+    tcpfileserver.h
 
 FORMS += \
     connectdialog.ui \

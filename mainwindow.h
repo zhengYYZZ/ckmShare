@@ -16,6 +16,8 @@
 
 #include "connectdialog.h"
 #include "setdialog.h"
+#include "tcpfileclient.h"
+#include "tcpfileserver.h"
 
 
 /***
@@ -61,6 +63,10 @@ private slots:
     void showConnectDlg();
     void showSetDlg();
     void clipboardChanged();
+    void tcpClientResult();
+    void tcpClientSendProgress(int sendSize,int fileSize);
+    void tcpServerResult(QByteArray data,int type);
+    void tcpServerProgress(int ReceivSzie,int fileSize);
 
 public:
     void read_local_ip();                       //读取本地ip
@@ -73,6 +79,8 @@ public:
     void get_clipboard_data();                  //获取粘贴板内容
     void send_clipboard_data(QString ip);       //发送粘贴板内容
     void set_clipboard_data(QString text);      //设置粘贴板内容 text
+    QImage get_imagedata_from_byte(const QString &data);
+    QByteArray get_imagedata_from_imagefile(const QImage &image);
 
 private:
     Ui::MainWindow *ui;
@@ -93,6 +101,8 @@ private:
     QString m_clipData;
     QPixmap m_clipImg;
     bool isLocalChangeClip = false;     //是否因设置引起粘贴板的改变
+    TcpFileClient *tcpClient;
+    TcpFileServer *tcpServer;
 
 };
 #endif // MAINWINDOW_H

@@ -61,6 +61,13 @@ MainWindow::MainWindow(QWidget *parent)
     ui->serverTableView->show();
 
     connect(QApplication::clipboard(), SIGNAL(dataChanged()),this, SLOT(clipboardChanged()));
+
+    tcpClient = new TcpFileClient();
+    connect(tcpClient,SIGNAL(resultSend()),this,SLOT(tcpClientResult()));
+    connect(tcpClient,SIGNAL(sendDataProgress(int,int)),this,SLOT(tcpClientSendProgress(int,int)));
+    tcpServer = new TcpFileServer();
+    connect(tcpServer,SIGNAL(resultData(QByteArray,int)),this,SLOT(tcpServerResult(QByteArray,int)));
+    connect(tcpServer,SIGNAL(ReceivingDataProgress(int,int)),this,SLOT(tcpServerProgress(int,int)));
 }
 
 MainWindow::~MainWindow()
@@ -178,6 +185,8 @@ void MainWindow::udpHandle(QString msg)
     }else if(strlist.at(1) == "image"){
         //传输图片x
         ip = strlist.at(2);
+        //建立tcp监听
+
     }else if(strlist.at(1) == "file"){
         //传输文件x
         ip = strlist.at(2);
@@ -305,6 +314,7 @@ void MainWindow::get_clipboard_data()
         //图片
         qDebug()<<"图片";
         m_clipboardType = 2;
+        m_clipImg = qvariant_cast<QPixmap>(mimeData->imageData());
     }else if(mimeData->hasHtml()){
         qDebug()<<"html";
         m_clipboardType = 1;
@@ -377,4 +387,39 @@ void MainWindow::clipboardChanged()
 
     }
 
+}
+
+
+void MainWindow::tcpClientResult()
+{
+    tcpClient->closeClient();
+}
+void MainWindow::tcpClientSendProgress(int sendSize,int fileSize)
+{
+
+}
+void MainWindow::tcpServerResult(QByteArray data,int type)
+{
+    tcpServer->closeServer();
+}
+void MainWindow::tcpServerProgress(int ReceivSzie,int fileSize)
+{
+
+}
+
+QImage MainWindow::get_imagedata_from_byte(const QString &data)
+{
+    QByteArray imageData = QByteArray::fromBase64(data.toLatin1());
+    QImage image;
+    image.loadFromData(imageData);
+    return image;
+}
+
+QByteArray MainWindow::get_imagedata_from_imagefile(const QImage &image)
+{
+    QByteArray imageData;
+    QBuffer buffer(&imageData);
+    image.save(&buffer, "jpg");
+    imageData = imageData.toBase64();
+    return imageData;
 }
