@@ -22,8 +22,8 @@ class TcpFileServer : public QObject
     Q_OBJECT
 public:
     explicit TcpFileServer(QObject *parent = nullptr);
-    void startListen(QString ip,int port);
-    void closeServer();
+    void startListen(QString ip,int port);  //开始监听
+    void closeServer(); //关闭
     quint16 streamuint16(QByteArray data);
     quint32 streamuint32(QByteArray data);
     QImage get_imagedata_from_byte(const QString &data);
@@ -48,6 +48,7 @@ private:
     QTcpServer *tcpServer;
     QTcpSocket *tcpServerConnection;
     QByteArray fileData;
+    QByteArray unpackData;  //拆包数据
 };
 
 #endif // TCPFILESERVER_H

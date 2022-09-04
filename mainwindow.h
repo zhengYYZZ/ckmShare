@@ -13,17 +13,22 @@
 #include <QClipboard>
 #include <QPixmap>
 #include <QMimeData>
+#include <QDateTime>
 
 #include "connectdialog.h"
 #include "setdialog.h"
 #include "tcpfileclient.h"
 #include "tcpfileserver.h"
 
+//test
+#include "dialogtesttcp.h"
+#include "dialogtcptest.h"
+
 
 /***
  * todo
  * 建立连接->ok
- * 心跳-->基本完成->ok
+ * 心跳->ok
  * 断线重连-ok
  * 显示连接ip--ok
  * 保存配置INI-->ok
@@ -68,6 +73,12 @@ private slots:
     void tcpServerResult(QByteArray data,int type);
     void tcpServerProgress(int ReceivSzie,int fileSize);
 
+    void on_localIPcomboBox_currentIndexChanged(const QString &arg1);
+
+    void on_actionslkdj_triggered();
+
+    void on_actionserver_triggered();
+
 public:
     void read_local_ip();                       //读取本地ip
     void read_local_ini(QString path);          //读取ini配置文件
@@ -94,6 +105,7 @@ private:
 
     QUdpSocket *udpSocket;
     int my_port;
+    int tcp_port;
     QTimer *heartTimer;
 
     //粘贴类型
@@ -103,6 +115,9 @@ private:
     bool isLocalChangeClip = false;     //是否因设置引起粘贴板的改变
     TcpFileClient *tcpClient;
     TcpFileServer *tcpServer;
+    QByteArray fileData;
+    qint64 m_tempsystime=0;
+
 
 };
 #endif // MAINWINDOW_H

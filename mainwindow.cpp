@@ -10,6 +10,7 @@ MainWindow::MainWindow(QWidget *parent)
     this->setWindowTitle("cmkShare");
 
     my_port = 6666;
+    tcp_port = 6667;
     udpSocket = new QUdpSocket(this);
     udpSocket->bind(QHostAddress::Any,my_port);
     connect(udpSocket,SIGNAL(readyRead()),this,SLOT(readUdpText()));
@@ -67,7 +68,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(tcpClient,SIGNAL(sendDataProgress(int,int)),this,SLOT(tcpClientSendProgress(int,int)));
     tcpServer = new TcpFileServer();
     connect(tcpServer,SIGNAL(resultData(QByteArray,int)),this,SLOT(tcpServerResult(QByteArray,int)));
-    connect(tcpServer,SIGNAL(ReceivingDataProgress(int,int)),this,SLOT(tcpServerProgress(int,int)));
+//    connect(tcpServer,SIGNAL(ReceivingDataProgress(int,int)),this,SLOT(tcpServerProgress(int,int)));
+    QString localIp = ui->localIPcomboBox->currentText();
+    tcpServer->startListen(localIp,tcp_port);
 }
 
 MainWindow::~MainWindow()
@@ -77,6 +80,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::read_local_ip()
 {
+    //读取本地ip
     QList<QHostAddress> ipList = QNetworkInterface::allAddresses();
     for(int i=0; i<ipList.size(); i++)
     {
@@ -96,11 +100,10 @@ void MainWindow::showConnectDlg()
     {
         addressHost ah;
         ah.ip = dlg.get_ip();
-        ah.port = dlg.get_port();
         ah.isConnect = false;
         ah.errCount = 0;
         m_serverMap.insert(ah.ip,ah);
-        concet_send(ah.ip,ah.port);
+        concet_send(ah.ip,tcp_port);
     }
 }
 
@@ -142,6 +145,7 @@ void MainWindow::concet_respond(QString ip, int port)
 
 void MainWindow::udpHandle(QString msg)
 {
+    //消息处理
     QStringList strlist = msg.split(";");
     if(strlist.size()<3)
         return;
@@ -160,11 +164,13 @@ void MainWindow::udpHandle(QString msg)
         ah.isConnect = true;
         ah.errCount = 0;
         m_clientMap[ip] = ah;
-        concet_respond(ip,port);    //回应
+        concet_respond(ip,tcp_port);    //回应
     }else if (strlist.at(1) == "connect2") {
         //处理连接回应
         ip = strlist.at(2);
+        int port = strlist.at(3).toInt();
         m_serverMap[ip].isConnect = true;
+        m_serverMap[ip].port = port;
         m_serverMap[ip].errCount = 0;
     }else if (strlist.at(1) == "heartbeat"){
         //心跳处理
@@ -185,11 +191,8 @@ void MainWindow::udpHandle(QString msg)
     }else if(strlist.at(1) == "image"){
         //传输图片x
         ip = strlist.at(2);
-        //建立tcp监听
-    }else if(strlist.at(1) == "image2"){
-        //开始发送图片数据
-    }
-    else if(strlist.at(1) == "file"){
+
+    }else if(strlist.at(1) == "file"){
         //传输文件x
         ip = strlist.at(2);
     }
@@ -203,7 +206,8 @@ void MainWindow::readUdpText()
     arrdata.resize(udpSocket->pendingDatagramSize());
     udpSocket->readDatagram(arrdata.data(),arrdata.size());
     str.prepend(arrdata);
-    qDebug()<<"readUdp:"<<str;
+    if(!str.contains("heartbeat",Qt::CaseSensitive))
+        qDebug()<<"readUdp:"<<str;
     udpHandle(str);
 }
 
@@ -345,6 +349,20 @@ void MainWindow::send_clipboard_data(QString ip)
         udpSocket->writeDatagram(sendstr.toUtf8(),QHostAddress(ip),my_port);
     }else if(m_clipboardType == 2){
         //图片
+        QString localIp = ui->localIPcomboBox->currentText();
+        QString sendstr = QString("ckmshare;image;%1").arg(localIp);
+        fileData = get_imagedata_from_imagefile(m_clipImg.toImage());
+        udpSocket->writeDatagram(sendstr.toUtf8(),QHostAddress(ip),my_port);
+        //tcp
+        int port = -1;
+        if(m_clientMap.contains(ip))
+            port = m_clientMap.value(ip).port;
+        else if(m_serverMap.contains(ip))
+            port = m_serverMap.value(ip).port;
+        else
+            return;
+        tcpClient->connectServer(ip,port);
+        tcpClient->sendData(fileData,m_clipboardType);
     }else if(m_clipboardType == 3){
         //文件
     }else{
@@ -356,9 +374,9 @@ void MainWindow::send_clipboard_data(QString ip)
 void MainWindow::set_clipboard_data(QString text)
 {
     QClipboard *clipboard = QApplication::clipboard();
+    isLocalChangeClip = true;
     clipboard->setText(text);
     qDebug()<<"设置粘贴板:"<<text;
-    isLocalChangeClip = true;
 }
 
 
@@ -367,7 +385,16 @@ void MainWindow::clipboardChanged()
     if(isLocalChangeClip){
         isLocalChangeClip = false;
     }else{
-        qDebug()<<"粘贴板内容改变";
+        qint64 tempsystime1 = QDateTime::currentMSecsSinceEpoch();
+        qDebug()<<"粘贴板内容改变:"<<tempsystime1;
+        if(std::abs(tempsystime1-m_tempsystime)<200)
+        {
+            qDebug()<<"粘贴板内容改变<200,return";
+            return;
+        }
+        else{
+            m_tempsystime = tempsystime1;
+        }
         get_clipboard_data();
         QMap<QString,addressHost>::const_iterator iterServer = m_serverMap.constBegin();
         while (iterServer != m_serverMap.constEnd()) {
@@ -394,19 +421,33 @@ void MainWindow::clipboardChanged()
 
 void MainWindow::tcpClientResult()
 {
+    qDebug()<<"tcpClientResult()";
     tcpClient->closeClient();
+    fileData.clear();
 }
 void MainWindow::tcpClientSendProgress(int sendSize,int fileSize)
 {
-
+    qDebug()<<"数据发送:"<<(float(sendSize)/fileSize*100)<<"%";
 }
 void MainWindow::tcpServerResult(QByteArray data,int type)
 {
-    tcpServer->closeServer();
+    if(type == 2)
+    {
+        //图片
+        QClipboard *clipboard = QApplication::clipboard();
+        isLocalChangeClip = true;
+        QImage img = get_imagedata_from_byte(data);
+        m_clipImg = QPixmap::fromImage(img);
+        clipboard->setImage(img);
+    }else if(type == 3)
+    {
+        //文件
+    }
+//    tcpServer->closeServer();
 }
 void MainWindow::tcpServerProgress(int ReceivSzie,int fileSize)
 {
-
+    qDebug()<<"数据接收:"<<float(ReceivSzie)/fileSize<<"%";
 }
 
 QImage MainWindow::get_imagedata_from_byte(const QString &data)
@@ -424,4 +465,23 @@ QByteArray MainWindow::get_imagedata_from_imagefile(const QImage &image)
     image.save(&buffer, "jpg");
     imageData = imageData.toBase64();
     return imageData;
+}
+
+void MainWindow::on_localIPcomboBox_currentIndexChanged(const QString &arg1)
+{
+//    tcpServer->closeServer();
+//    QString localIp = arg1;//ui->localIPcomboBox->currentText();
+//    tcpServer->startListen(localIp,tcp_port);
+}
+
+void MainWindow::on_actionslkdj_triggered()
+{
+    DialogTestTCP dlg;
+    dlg.exec();
+}
+
+void MainWindow::on_actionserver_triggered()
+{
+    DialogTcpTest dlg;
+    dlg.exec();
 }

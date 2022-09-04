@@ -17,7 +17,6 @@ connectDialog::~connectDialog()
 void connectDialog::on_buttonBox_accepted()
 {
     m_ip = ui->ip_lineEdit->text();
-    m_port = ui->port_lineEdit->text().toInt();
     m_isOk = true;
     this->close();
 }

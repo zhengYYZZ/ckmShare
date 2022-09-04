@@ -17,6 +17,8 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     connectdialog.cpp \
+    dialogtcptest.cpp \
+    dialogtesttcp.cpp \
     main.cpp \
     mainwindow.cpp \
     setdialog.cpp \
@@ -25,6 +27,8 @@ SOURCES += \
 
 HEADERS += \
     connectdialog.h \
+    dialogtcptest.h \
+    dialogtesttcp.h \
     mainwindow.h \
     setdialog.h \
     tcpfileclient.h \
@@ -32,6 +36,8 @@ HEADERS += \
 
 FORMS += \
     connectdialog.ui \
+    dialogtcptest.ui \
+    dialogtesttcp.ui \
     mainwindow.ui \
     setdialog.ui \
 

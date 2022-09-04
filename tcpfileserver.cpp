@@ -3,13 +3,12 @@
 TcpFileServer::TcpFileServer(QObject *parent) : QObject(parent)
 {
     tcpServer = new QTcpServer(this);
-
+    connect(tcpServer, SIGNAL(newConnection()),this, SLOT(acceptConnection()));
 }
 
 void TcpFileServer::startListen(QString ip, int port)
 {
-    connect(tcpServer, SIGNAL(newConnection()),
-                this, SLOT(acceptConnection()));
+
     QHostAddress hostip(ip);
     if(!tcpServer->listen(hostip,port)){
         qDebug()<<tcpServer->errorString();
@@ -21,12 +20,12 @@ void TcpFileServer::startListen(QString ip, int port)
 
 void TcpFileServer::tcpConnected()
 {
-    qDebug()<<"tcp连接";
+    qDebug()<<"server tcp连接";
 }
 
 void TcpFileServer::tcpDisconnected()
 {
-    qDebug()<<"tcp断开连接";
+    qDebug()<<"server tcp断开连接";
 }
 
 void TcpFileServer::displayError(QAbstractSocket::SocketError err)
@@ -56,35 +55,57 @@ void TcpFileServer::updateServerProgress()
 {
     QByteArray buffer;
     buffer = tcpServerConnection->readAll();
+    QByteArray newData = unpackData + buffer;
+    unpackData.clear();
     int countbuff = 0;
-    if(buffer.size()>TCP_PACKAGE_SIZE){
-        do{
-            countbuff += TCP_PACKAGE_SIZE;
-            handleByteData(buffer);
-        }while(countbuff<buffer.size());
+    qDebug()<<"buffer len:"<<buffer.size();
+
+    if(newData.size()%TCP_PACKAGE_SIZE == 0)
+    {
+        if(newData.size()>TCP_PACKAGE_SIZE){
+            do{
+                handleByteData(newData.mid(countbuff,TCP_PACKAGE_SIZE));
+                countbuff += TCP_PACKAGE_SIZE;
+            }while(countbuff<newData.size());
+        }else{
+            qDebug()<<"数据<="<<TCP_PACKAGE_SIZE;
+            handleByteData(newData);
+        }
     }else{
-        qDebug()<<"数据<="<<TCP_PACKAGE_SIZE;
-        handleByteData(buffer);
+        int unpackLen = newData.size() - newData.size()%TCP_PACKAGE_SIZE;
+        QByteArray tempData = newData.mid(0,unpackLen);
+        unpackData = newData.mid(unpackLen,newData.size()%TCP_PACKAGE_SIZE);
+        if(newData.size()>=TCP_PACKAGE_SIZE){
+            do{
+                handleByteData(tempData.mid(countbuff,TCP_PACKAGE_SIZE));
+                countbuff += TCP_PACKAGE_SIZE;
+            }while(countbuff<tempData.size());
+        }
     }
+
+
 }
 
 void TcpFileServer::handleByteData(QByteArray data)
 {
-    //前1000为文件头
+    //前100为文件头
     quint16 cmdid1 = streamuint16(data.left(2));//2位:1第一条数据，2中间数据，3最后一条数据
-    quint32 cmdid2 = streamuint32(data.mid(2,4));//4位:1图片，2文件，3文本
+    quint32 cmdid2 = streamuint32(data.mid(2,4));//4位:1文本，2图片，3文件，
     quint32 cmdid3 = streamuint32(data.mid(6,4));//4位:计数
     quint32 cmdid4 = streamuint32(data.mid(10,4));//4位:此条数据中有效内容
     quint32 cmdid5 = streamuint32(data.mid(14,4));//4位:文件总大小
     quint16 cmdid6 = streamuint16(data.mid(18,2));//2位:识别码长度
     QByteArray cmd7 = data.mid(20,cmdid6);  //识别码,uuid 38字符
     QByteArray imgdata = data.mid(DATA_HEAD_SIZE,cmdid4);
-    qDebug()<<"isImage uuid:"<<cmd7<<"id:"<<cmdid3;
 
-    emit ReceivingDataProgress(fileData.size(),cmdid5);
+//    qDebug()<<"i:"<<cmdid3<<",isImage uuid:"<<cmd7<<",fileLen:"<<imgdata.size();
+
     fileData += imgdata;
+    emit ReceivingDataProgress(fileData.size(),cmdid5);
+
     if(cmdid1 == 3)
     {
+        qDebug()<<"end:3";
         emit resultData(fileData,cmdid2);
         fileData.clear();
     }

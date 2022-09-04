@@ -25,7 +25,7 @@ void TcpFileClient::sendData(QByteArray data,int dataType)
         QByteArray dataTemp = data.mid(countdata,DATA_VALID_SIZE);
         QUuid uuid = QUuid::createUuid();
         QByteArray byteUuid = uuid.toByteArray();
-        qDebug()<<byteUuid;
+//        qDebug()<<byteUuid<<","<<byteUuid.size();
 
         //前1000为文件头
         //2位:1第一条数据，2中间数据，3最后一条数据
@@ -36,15 +36,30 @@ void TcpFileClient::sendData(QByteArray data,int dataType)
         //2位:识别码长度
         //128位:识别码，暂定为uuid
         //DATA_HEAD_SIZE位后:数据
-        dataTial << quint32(dataType); //4位:1图片，2文件，3文本
+        if(countdata == 0)
+        {
+            //开始发送，文件头填写1，表示是第一个数据
+            dataTial << quint16(1);
+
+        }else if(countdata >= data.size()-DATA_VALID_SIZE)
+        {
+            //最后一个数据,文件头填写3
+            dataTial << quint16(3);
+        }else{
+            //中间的数据，文件头填写2
+            dataTial << quint16(2);
+        }
+
+        dataTial << quint32(dataType); //4位:1文本，2图片，3文件
         dataTial << quint32(i); //4位:计数
         dataTial << quint32(dataTemp.size());   //4位:此条数据中有效内容
         dataTial << quint32(data.size());  //4位:文件总大小
         dataTial << quint16(byteUuid.size());   //2位:识别码长度
         dataPackage = dataPackage.insert(20,byteUuid.data(),byteUuid.size());//128位:识别码，暂定为uuid
-        dataPackage = dataPackage.insert(DATA_HEAD_SIZE,dataTemp.data(),dataTemp.size());//1000后:数据
+        dataPackage = dataPackage.insert(DATA_HEAD_SIZE,dataTemp.data(),dataTemp.size());//100后:数据
         dataPackage.resize(4096);
         tcpclient->write(dataPackage);
+//        qDebug()<<i<<","<<byteUuid<<","<<dataTemp.size();
 
         sendDataSize += dataTemp.size();
         countdata += DATA_VALID_SIZE;
@@ -75,12 +90,15 @@ QImage TcpFileClient::get_imagedata_from_byte(const QString &data)
 
 void TcpFileClient::tcpConnected()
 {
-    qDebug()<<"tcp连接";
+    qDebug()<<"client tcp连接";
 }
 
 void TcpFileClient::tcpDisconnected()
 {
-    qDebug()<<"tcp断开连接";
+    qDebug()<<"client tcp断开连接";
+    disconnect(tcpclient,SIGNAL(connected()), this, SLOT(tcpConnected()));
+    disconnect(tcpclient, SIGNAL(disconnected()), this, SLOT(tcpDisconnected()));
+    disconnect(tcpclient, SIGNAL(error(QAbstractSocket::SocketError)),this, SLOT(displayError(QAbstractSocket::SocketError)));
 }
 
 void TcpFileClient::displayError(QAbstractSocket::SocketError err)
@@ -90,6 +108,8 @@ void TcpFileClient::displayError(QAbstractSocket::SocketError err)
 
 void TcpFileClient::closeClient()
 {
-    if(tcpclient != NULL)
+    if(tcpclient != NULL){
         tcpclient->close();
+
+    }
 }
