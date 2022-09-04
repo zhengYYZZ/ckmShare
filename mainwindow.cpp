@@ -6,6 +6,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
+    tcpServer = new TcpFileServer();
     ui->setupUi(this);
     this->setWindowTitle("cmkShare");
 
@@ -66,11 +67,17 @@ MainWindow::MainWindow(QWidget *parent)
     tcpClient = new TcpFileClient();
     connect(tcpClient,SIGNAL(resultSend()),this,SLOT(tcpClientResult()));
     connect(tcpClient,SIGNAL(sendDataProgress(int,int)),this,SLOT(tcpClientSendProgress(int,int)));
-    tcpServer = new TcpFileServer();
+
+    QString localIp = ui->localIPcomboBox->currentText();
+//    on_localIPcomboBox_currentIndexChanged(localIp);
+
     connect(tcpServer,SIGNAL(resultData(QByteArray,int)),this,SLOT(tcpServerResult(QByteArray,int)));
 //    connect(tcpServer,SIGNAL(ReceivingDataProgress(int,int)),this,SLOT(tcpServerProgress(int,int)));
-    QString localIp = ui->localIPcomboBox->currentText();
-    tcpServer->startListen(localIp,tcp_port);
+//    tcpServer->startListen(localIp,tcp_port);
+
+
+    m_sysTrayIcon = new QSystemTrayIcon(this);
+    connect(m_sysTrayIcon,SIGNAL(activated(QSystemTrayIcon::ActivationReason)),this,SLOT(on_activatedSysTrayIcon(QSystemTrayIcon::ActivationReason)));
 }
 
 MainWindow::~MainWindow()
@@ -470,8 +477,10 @@ QByteArray MainWindow::get_imagedata_from_imagefile(const QImage &image)
 void MainWindow::on_localIPcomboBox_currentIndexChanged(const QString &arg1)
 {
 //    tcpServer->closeServer();
-//    QString localIp = arg1;//ui->localIPcomboBox->currentText();
+    QString localIp = arg1;//ui->localIPcomboBox->currentText();
 //    tcpServer->startListen(localIp,tcp_port);
+    tcpServer->closeServer();
+    tcpServer->startListen(localIp,tcp_port);
 }
 
 void MainWindow::on_actionslkdj_triggered()
@@ -484,4 +493,54 @@ void MainWindow::on_actionserver_triggered()
 {
     DialogTcpTest dlg;
     dlg.exec();
+}
+
+void MainWindow::on_activatedSysTrayIcon(QSystemTrayIcon::ActivationReason reason)
+{
+    switch(reason){
+    case QSystemTrayIcon::Trigger:
+        //单击托盘图标
+        //单击后显示主程序窗口
+        this->show();
+        m_sysTrayIcon->hide();
+        break;
+    case QSystemTrayIcon::DoubleClick:
+        //双击托盘图标
+        break;
+    default:
+        break;
+    }
+}
+
+void MainWindow::closeEvent(QCloseEvent *e)
+{
+    //最小化到系统托盘
+    ExitDialog dlg;
+    dlg.exec();
+    e->ignore();  //忽略退出信号，程序继续运行
+    if(dlg.get_is_ok())
+    {
+        if(dlg.get_is_exit())
+        {
+            e->accept();    //接受退出信号，程序退出
+        }else{
+            this->hide();
+            setTaryIcon();
+        }
+    }
+
+}
+
+void MainWindow::setTaryIcon()
+{
+    //新建托盘要显示的icon
+    QString AppPath = QCoreApplication::applicationDirPath();
+    qDebug()<<AppPath;
+    QIcon icon = QIcon(QString("%1/icon/ajwzr-67kl1-001.ico").arg(AppPath));
+    //将icon设到QSystemTrayIcon对象中
+    m_sysTrayIcon->setIcon(icon);
+    //当鼠标移动到托盘上的图标时，会显示此处设置的内容
+    m_sysTrayIcon->setToolTip(QObject::trUtf8("cmkShare"));
+    //在系统托盘显示此对象
+    m_sysTrayIcon->show();
 }

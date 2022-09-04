@@ -19,6 +19,7 @@ SOURCES += \
     connectdialog.cpp \
     dialogtcptest.cpp \
     dialogtesttcp.cpp \
+    exitdialog.cpp \
     main.cpp \
     mainwindow.cpp \
     setdialog.cpp \
@@ -29,6 +30,7 @@ HEADERS += \
     connectdialog.h \
     dialogtcptest.h \
     dialogtesttcp.h \
+    exitdialog.h \
     mainwindow.h \
     setdialog.h \
     tcpfileclient.h \
@@ -38,6 +40,7 @@ FORMS += \
     connectdialog.ui \
     dialogtcptest.ui \
     dialogtesttcp.ui \
+    exitdialog.ui \
     mainwindow.ui \
     setdialog.ui \
 
@@ -45,3 +48,6 @@ FORMS += \
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+# icon
+RC_ICONS = icon/ajwzr-67kl1-001.ico

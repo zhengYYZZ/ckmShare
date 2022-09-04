@@ -14,11 +14,15 @@
 #include <QPixmap>
 #include <QMimeData>
 #include <QDateTime>
+#include <QSystemTrayIcon>
+#include <QCloseEvent>
+#include <QThread>
 
 #include "connectdialog.h"
 #include "setdialog.h"
 #include "tcpfileclient.h"
 #include "tcpfileserver.h"
+#include "exitdialog.h"
 
 //test
 #include "dialogtesttcp.h"
@@ -61,6 +65,8 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+    void closeEvent(QCloseEvent *e) override;               //关闭事件
+    void setTaryIcon();                                     //设置系统托盘
 
 private slots:
     void readUdpText();     //读取udp内容
@@ -72,6 +78,7 @@ private slots:
     void tcpClientSendProgress(int sendSize,int fileSize);
     void tcpServerResult(QByteArray data,int type);
     void tcpServerProgress(int ReceivSzie,int fileSize);
+    void on_activatedSysTrayIcon(QSystemTrayIcon::ActivationReason reason); //托盘响应函数
 
     void on_localIPcomboBox_currentIndexChanged(const QString &arg1);
 
@@ -117,6 +124,7 @@ private:
     TcpFileServer *tcpServer;
     QByteArray fileData;
     qint64 m_tempsystime=0;
+    QSystemTrayIcon *m_sysTrayIcon;     //用于最小化到托盘
 
 
 };
