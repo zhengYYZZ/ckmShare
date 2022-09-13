@@ -139,7 +139,7 @@ void MainWindow::concet_send(QString ip, int port)
     QString localIp = ui->localIPcomboBox->currentText();
     QString sendstr = QString("ckmshare;connect;%1;%2").arg(localIp).arg(port);
     udpSocket->writeDatagram(sendstr.toUtf8(),QHostAddress(ip),my_port);
-//    qDebug()<<"concet_send发起连接请求:"<<sendstr;
+    qDebug()<<"concet_send发起连接请求:"<<sendstr;
 }
 
 void MainWindow::concet_respond(QString ip, int port)
@@ -176,6 +176,8 @@ void MainWindow::udpHandle(QString msg)
         //处理连接回应
         ip = strlist.at(2);
         int port = strlist.at(3).toInt();
+        if(m_serverMap[ip].ip == "")
+            m_serverMap[ip].ip = ip;
         m_serverMap[ip].isConnect = true;
         m_serverMap[ip].port = port;
         m_serverMap[ip].errCount = 0;
@@ -213,8 +215,9 @@ void MainWindow::readUdpText()
     arrdata.resize(udpSocket->pendingDatagramSize());
     udpSocket->readDatagram(arrdata.data(),arrdata.size());
     str.prepend(arrdata);
-    if(!str.contains("heartbeat",Qt::CaseSensitive))
-        qDebug()<<"readUdp:"<<str;
+//    if(!str.contains("heartbeat",Qt::CaseSensitive))
+//        qDebug()<<"readUdp:"<<str;
+    qDebug()<<"readUdp:"<<str;
     udpHandle(str);
 }
 
@@ -231,11 +234,9 @@ void MainWindow::heartbeatTimer()
         QString ip = iterServer.key();
         if(iterServer.value().isConnect){
             udpSocket->writeDatagram(sendstr.toUtf8(),QHostAddress(ip),my_port);
-//            qDebug()<<"发送心跳m_serverMap:"<<sendstr<<";"<<ip;
         }
 
         m_serverMap[ip].errCount++;
-//        qDebug()<<"errCount:"<<m_serverMap[ip].errCount<<",ip:"<<ip;
         if(m_serverMap[ip].errCount > 5 && m_serverMap[ip].errCount < 10){
             //连接断开了
             m_serverMap[ip].isConnect = false;
@@ -301,6 +302,7 @@ void MainWindow::heartbeat_respond(QString ip)
         udpSocket->writeDatagram(sendstr.toUtf8(),QHostAddress(ip),my_port);
         //心跳正常
         m_clientMap[ip].errCount = 0;
+        m_clientMap[ip].isConnect = true;
 //        qDebug()<<"heartbeat_respond";
     }
 }
@@ -312,6 +314,7 @@ void MainWindow::heartbeat2_respond(QString ip)
     {
         //心跳正常
         m_serverMap[ip].errCount = 0;
+        m_serverMap[ip].isConnect = true;
 //        qDebug()<<"heartbeat2_respond";
 
     }
