@@ -10,8 +10,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     this->setWindowTitle("cmkShare");
 
+    updataSystemIni();
     my_port = 6666;
-    tcp_port = 6667;
     udpSocket = new QUdpSocket(this);
     udpSocket->bind(QHostAddress::Any,my_port);
     connect(udpSocket,SIGNAL(readyRead()),this,SLOT(readUdpText()));
@@ -68,7 +68,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(tcpClient,SIGNAL(resultSend()),this,SLOT(tcpClientResult()));
     connect(tcpClient,SIGNAL(sendDataProgress(int,int)),this,SLOT(tcpClientSendProgress(int,int)));
 
-    QString localIp = ui->localIPcomboBox->currentText();
+//    QString localIp = ui->localIPcomboBox->currentText();
 //    on_localIPcomboBox_currentIndexChanged(localIp);
 
     connect(tcpServer,SIGNAL(resultData(QByteArray,int)),this,SLOT(tcpServerResult(QByteArray,int)));
@@ -111,6 +111,9 @@ void MainWindow::showConnectDlg()
         ah.errCount = 0;
         m_serverMap.insert(ah.ip,ah);
         concet_send(ah.ip,tcp_port);
+        updataSystemIni();
+        QString localIp = ui->localIPcomboBox->currentText();
+        on_localIPcomboBox_currentIndexChanged(localIp);
     }
 }
 
@@ -120,17 +123,13 @@ void MainWindow::showSetDlg()
     dlg.exec();
 }
 
-void MainWindow::read_local_ini(QString path)
-{
-
-}
 
 /**********************************
 * 函数名:  concet_send
 * 函数描述: 发起连接请求
 * 输入参数:
 *       ip: 目标ip
-*       port: 数据传输端口，不是udpSocket绑定的端口
+*       port: 本机数据传输端口，不是udpSocket绑定的端口
 * 输出参数:
 * 返回值:
 ************************************/
@@ -243,7 +242,7 @@ void MainWindow::heartbeatTimer()
         }else if(m_serverMap[ip].errCount > 10)
         {
             //重新连接
-            concet_send(m_serverMap[ip].ip,m_serverMap[ip].port);
+            concet_send(m_serverMap[ip].ip,tcp_port);
             m_serverMap[ip].errCount = 5;
         }
 
@@ -365,12 +364,20 @@ void MainWindow::send_clipboard_data(QString ip)
         udpSocket->writeDatagram(sendstr.toUtf8(),QHostAddress(ip),my_port);
         //tcp
         int port = -1;
-        if(m_clientMap.contains(ip))
+        if(m_clientMap.contains(ip)){
             port = m_clientMap.value(ip).port;
-        else if(m_serverMap.contains(ip))
+//            if(!m_clientMap.value(ip).isConnect){
+//                //连接状态错误不发送
+//                return;
+//            }
+        }else if(m_serverMap.contains(ip)){
             port = m_serverMap.value(ip).port;
-        else
+//            if(!m_serverMap.value(ip).isConnect){
+//                return;
+//            }
+        }else{
             return;
+        }
         tcpClient->connectServer(ip,port);
         tcpClient->sendData(fileData,m_clipboardType);
     }else if(m_clipboardType == 3){
@@ -479,6 +486,7 @@ QByteArray MainWindow::get_imagedata_from_imagefile(const QImage &image)
 
 void MainWindow::on_localIPcomboBox_currentIndexChanged(const QString &arg1)
 {
+    //开始监听tcp或者文件传输
 //    tcpServer->closeServer();
     QString localIp = arg1;//ui->localIPcomboBox->currentText();
 //    tcpServer->startListen(localIp,tcp_port);
@@ -537,13 +545,20 @@ void MainWindow::closeEvent(QCloseEvent *e)
 void MainWindow::setTaryIcon()
 {
     //新建托盘要显示的icon
-    QString AppPath = QCoreApplication::applicationDirPath();
-    qDebug()<<AppPath;
-    QIcon icon = QIcon(QString("%1/icon/ajwzr-67kl1-001.ico").arg(AppPath));
+    QIcon icon = QIcon(":/new/prefix1/icon/ajwzr-67kl1-001.ico");
     //将icon设到QSystemTrayIcon对象中
     m_sysTrayIcon->setIcon(icon);
     //当鼠标移动到托盘上的图标时，会显示此处设置的内容
     m_sysTrayIcon->setToolTip(QObject::trUtf8("cmkShare"));
     //在系统托盘显示此对象
     m_sysTrayIcon->show();
+}
+
+void MainWindow::updataSystemIni()
+{
+    QSettings config("./SYSTEM.INI",QSettings::IniFormat);
+    tcp_port = config.value("/set/port").toInt();
+    m_fileSize = config.value("/set/fileSize").toInt();
+    m_tempFilePath = config.value("/set/TempFilePath").toString();
+
 }

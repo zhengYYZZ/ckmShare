@@ -51,3 +51,6 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 # icon
 RC_ICONS = icon/ajwzr-67kl1-001.ico
+
+RESOURCES += \
+    image.qrc

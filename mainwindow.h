@@ -67,6 +67,7 @@ public:
     ~MainWindow();
     void closeEvent(QCloseEvent *e) override;               //关闭事件
     void setTaryIcon();                                     //设置系统托盘
+    void updataSystemIni();                                 //获取更新./SYSTEM.INI文件信息
 
 private slots:
     void readUdpText();     //读取udp内容
@@ -88,7 +89,6 @@ private slots:
 
 public:
     void read_local_ip();                       //读取本地ip
-    void read_local_ini(QString path);          //读取ini配置文件
     void concet_send(QString ip,int port);      //发起连接请求
     void concet_respond(QString ip,int port);   //回应连接请求
     void udpHandle(QString msg);                //处理接收到的信息
@@ -112,7 +112,9 @@ private:
 
     QUdpSocket *udpSocket;
     int my_port;
-    int tcp_port;
+    int tcp_port = 6667;       //文件传输端口
+    int m_fileSize;     //文件传输大小上限
+    QString m_tempFilePath; //文件传输临时存放位置
     QTimer *heartTimer;
 
     //粘贴类型

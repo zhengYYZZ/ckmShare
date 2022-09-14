@@ -1,5 +1,6 @@
 #include "setdialog.h"
 #include "ui_setdialog.h"
+#include <QDebug>
 
 setDialog::setDialog(QWidget *parent) :
     QDialog(parent),
@@ -39,4 +40,10 @@ void setDialog::on_buttonBox_accepted()
 void setDialog::on_buttonBox_rejected()
 {
     close();
+}
+
+void setDialog::on_filePathPushButton_clicked()
+{
+    QString fileDirPath = QFileDialog::getExistingDirectory(this,tr("设置保存目录"));
+    ui->filePathLineEdit->setText(fileDirPath);
 }

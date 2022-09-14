@@ -3,6 +3,7 @@
 
 #include <QDialog>
 #include <QSettings>
+#include <QFileDialog>
 
 namespace Ui {
 class setDialog;
@@ -20,6 +21,8 @@ private slots:
     void on_buttonBox_accepted();
 
     void on_buttonBox_rejected();
+
+    void on_filePathPushButton_clicked();
 
 private:
     Ui::setDialog *ui;
